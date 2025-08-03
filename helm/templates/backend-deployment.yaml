@@ -1,0 +1,61 @@
+
+{{- if .Values.backend.canary.enabled }}
+# Canary Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "product-catalog.fullname" . }}-backend-canary
+  labels:
+    {{- include "product-catalog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: {{ .Values.backend.image.tag | quote }}
+    app.kubernetes.io/canary: "true"
+spec:
+  replicas: {{ .Values.backend.canary.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "product-catalog.name" . }}-backend
+      app.kubernetes.io/canary: "true"
+  template:
+    metadata:
+      labels:
+        {{- include "product-catalog.labels" . | nindent 8 }}
+        app.kubernetes.io/canary: "true"
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.targetPort }}
+---
+{{- end }}
+# Main (Stable) Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "product-catalog.fullname" . }}-backend-stable
+  labels:
+    {{- include "product-catalog.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+    app.kubernetes.io/version: {{ .Values.backend.image.tag | quote }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "product-catalog.name" . }}-backend
+      app.kubernetes.io/canary: "false"
+  template:
+    metadata:
+      labels:
+        {{-- include "product-catalog.labels" . | nindent 8 }}
+        app.kubernetes.io/canary: "false"
+        app.kubernetes.io/component: backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.service.targetPort }}

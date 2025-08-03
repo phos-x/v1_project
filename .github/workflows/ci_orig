@@ -1,0 +1,97 @@
+# # .github/workflows/ci.yaml
+# # This workflow automates the build, test, and deployment of our microservices.
+# # It uses GitHub Actions to build Docker images, push them to ECR, and deploy
+# # them to our EKS cluster using Helm.
+
+# name: CI/CD Pipeline
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# env:
+#   # ECR repository URLs and other shared environment variables
+#   BACKEND_ECR_REPO: <YOUR_BACKEND_ECR_REPO_URL>
+#   FRONTEND_ECR_REPO: <YOUR_FRONTEND_ECR_REPO_URL>
+#   AWS_REGION: us-east-1
+#   EKS_CLUSTER_NAME: product-catalog-cluster
+#   HELM_CHART_PATH: ./helm
+
+# permissions:
+#   id-token: write # This is required for OIDC authentication with AWS
+#   contents: read
+
+# jobs:
+#   build_and_deploy:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v4
+
+#       # --- Configure AWS Credentials using OIDC ---
+#       # This is the most secure way to authenticate with AWS from GitHub Actions
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           role-to-assume: <YOUR_GITHUB_ACTIONS_ROLE_ARN> # The ARN from your Terraform output
+#           aws-region: ${{ env.AWS_REGION }}
+
+#       # --- Build and push Backend API image ---
+#       - name: Login to ECR
+#         id: ecr-login
+#         uses: aws-actions/amazon-ecr-login@v2
+
+#       - name: Set up Go
+#         uses: actions/setup-go@v4
+#         with:
+#           go-version: '1.22'
+
+#       - name: Build and push Backend Docker image
+#         run: |
+#           docker build -t $BACKEND_ECR_REPO:$GITHUB_SHA ./backend-api
+#           docker push $BACKEND_ECR_REPO:$GITHUB_SHA
+
+#       # --- Build and push Frontend UI image ---
+#       - name: Build and push Frontend Docker image
+#         run: |
+#           docker build -t $FRONTEND_ECR_REPO:$GITHUB_SHA ./frontend-ui
+#           docker push $FRONTEND_ECR_REPO:$GITHUB_SHA
+
+#       # --- Deploy to EKS with Helm (Canary Deployment) ---
+#       - name: Update kubeconfig
+#         run: |
+#           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
+#       - name: Deploy with Helm
+#         uses: azure/setup-helm@v4
+#         with:
+#           version: '3.14.0'
+          
+#       - name: Deploy backend with canary
+#         run: |
+#           # Use helm to perform a canary deployment.
+#           # This deploys a small replica count of the new version alongside the stable one.
+#           helm upgrade --install product-catalog-canary ${{ env.HELM_CHART_PATH }} \
+#           --set backend.image.repository=$BACKEND_ECR_REPO \
+#           --set backend.image.tag=$GITHUB_SHA \
+#           --set backend.canary.enabled=true \
+#           --set frontend.image.repository=$FRONTEND_ECR_REPO \
+#           --set frontend.image.tag=$GITHUB_SHA \
+#           --atomic --wait --timeout 5m
+          
+#       - name: Promote new version to stable (Simulated)
+#         if: success()
+#         run: |
+#           # After a successful canary deployment, we can manually promote it.
+#           # In a real-world scenario, this would be a separate job with a manual approval step.
+#           # For this project, we'll simulate the promotion by upgrading the stable deployment.
+#           echo "Canary deployment successful. Promoting to stable..."
+#           helm upgrade --install product-catalog-stable ${{ env.HELM_CHART_PATH }} \
+#           --set backend.image.repository=$BACKEND_ECR_REPO \
+#           --set backend.image.tag=$GITHUB_SHA \
+#           --set backend.canary.enabled=false \
+#           --set frontend.image.repository=$FRONTEND_ECR_REPO \
+#           --set frontend.image.tag=$GITHUB_SHA \
+#           --atomic --wait --timeout 5m
+

@@ -1,0 +1,29 @@
+# backend-api/Dockerfile
+
+FROM golang:1.22 AS builder
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+# Build as a static executable
+# -ldflags="-s -w" reduces the binary size
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -ldflags="-s -w" -o main .
+
+# --- Stage 2
+#FROM alpine:3.18
+FROM gcr.io/distroless/static:nonroot
+
+USER nonroot
+
+# optional
+WORKDIR /
+
+COPY --from=builder /app/main .
+
+EXPOSE 8222
+
+ENTRYPOINT ["/main"]
+

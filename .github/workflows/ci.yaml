@@ -1,0 +1,85 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  BACKEND_ECR_REPO: ${{ secrets.BACKEND_ECR_REPO_URL }}
+  FRONTEND_ECR_REPO: ${{ secrets.FRONTEND_ECR_REPO_URL }}
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: product-catalog-cluster
+  HELM_CHART_PATH: ./helm
+
+permissions:
+  id-token: write 
+  contents: read
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # --- Configure AWS Credentials using OIDC ---
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.IAM_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+    
+      - name: Login to ECR
+        id: ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.22'
+
+      - name: Build and push Backend Docker image
+        run: |
+          docker build -t ${{ env.BACKEND_ECR_REPO }}:$GITHUB_SHA ./backend-api
+          docker push ${{ env.BACKEND_ECR_REPO }}:$GITHUB_SHA
+
+     
+      - name: Build and push Frontend Docker image
+        run: |
+          docker build -t ${{ env.FRONTEND_ECR_REPO }}:$GITHUB_SHA ./frontend-ui
+          docker push ${{ env.FRONTEND_ECR_REPO }}:$GITHUB_SHA
+
+    
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy with Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: '3.14.0'
+          
+      - name: Deploy backend with canary
+        run: |
+          helm upgrade --install product-catalog-canary ${{ env.HELM_CHART_PATH }} \
+          --set backend.image.repository=${{ env.BACKEND_ECR_REPO }} \
+          --set backend.image.tag=$GITHUB_SHA \
+          --set backend.canary.enabled=true \
+          --set frontend.image.repository=${{ env.FRONTEND_ECR_REPO }} \
+          --set frontend.image.tag=$GITHUB_SHA \
+          --atomic --wait --timeout 5m
+          
+      - name: Promote new version to stable (Simulated)
+        if: success()
+        run: |
+          echo "Canary deployment successful. Promoting to stable..."
+          helm upgrade --install product-catalog-stable ${{ env.HELM_CHART_PATH }} \
+          --set backend.image.repository=${{ env.BACKEND_ECR_REPO }} \
+          --set backend.image.tag=$GITHUB_SHA \
+          --set backend.canary.enabled=false \
+          --set frontend.image.repository=${{ env.FRONTEND_ECR_REPO }} \
+          --set frontend.image.tag=$GITHUB_SHA \
+          --atomic --wait --timeout 5m
+
