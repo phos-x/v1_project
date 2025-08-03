@@ -1,5 +1,5 @@
 ```markdown
-# 🚀 Secure Microservices CI/CD Pipeline with Canary Deployment on AWS EKS
+# Secure Microservices CI/CD Pipeline with Canary Deployment on AWS EKS 🚀
 
 This project presents a platform, meticulously architected to empower a microservices application with seamless automation, unyielding security, and a robust deployment methodology. It confronts the critical challenge of implementing a streamlined software delivery lifecycle that ensures new code is packaged, tested, and deployed with precision and confidence.
 
@@ -9,7 +9,7 @@ This strategic, phased approach drastically reduces the potential for service di
 
 ---
 
-## ✨ Features
+## Features ✨
 
 - **Infrastructure as Code (IaC)**: The entire AWS ecosystem—including a fortified VPC, an EKS cluster, and a fleet of ECR repositories—is provisioned and managed entirely through Terraform.
 - **Automated CI/CD**: An end-to-end pipeline powered by GitHub Actions orchestrates the entire journey of code, from a simple commit to a live production deployment.
@@ -19,7 +19,7 @@ This strategic, phased approach drastically reduces the potential for service di
 
 ---
 
-## 🛠️ Technologies Used
+## Technologies Used 🛠️
 
 - **Cloud Provider**: AWS  
 - **Orchestration**: Kubernetes (on AWS EKS)  
@@ -32,7 +32,7 @@ This strategic, phased approach drastically reduces the potential for service di
 
 ---
 
-## 📂 Project Structure
+## Project Structure 📂
 
 ```
 my-project/
@@ -66,9 +66,9 @@ my-project/
 
 ---
 
-## 🏁 Getting Started
+## Getting Started 🏁
 
-### 1. ☁️ Provision the Infrastructure
+### 1. Provision the Infrastructure ☁️
 
 Use Terraform to provision the necessary AWS resources:
 
@@ -83,7 +83,7 @@ Approve the changes. This command creates a VPC, an EKS cluster, ECR repositorie
 
 ---
 
-### 2. 🔒 Configure GitHub Secrets
+### 2. Configure GitHub Secrets 🔒
 
 Go to your repository's settings and add the following secrets:
 
@@ -93,20 +93,20 @@ Go to your repository's settings and add the following secrets:
 
 ---
 
-### 3. 🚀 Deploy the Application
+### 3. Deploy the Application 🚀
 
 Push to the `main` branch to trigger the `ci.yaml` workflow. This will automatically build and deploy your microservices to the EKS cluster.
 
 ---
 
-### 4. 🌐 Viewing the Application
+### 4. Viewing the Application 🌐
 
 To access your deployed application, retrieve the URL of your EKS cluster's ingress controller.  
 Navigate to this URL in your browser to view the product catalog in action.
 
 ---
 
-## ⚙️ The CI/CD Pipeline Workflow
+## The CI/CD Pipeline Workflow ⚙️
 
 The GitHub Actions workflow in `.github/workflows/ci.yaml` performs the following steps:
 
